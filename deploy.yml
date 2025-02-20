@@ -6,15 +6,7 @@
   vars_files:
      - files/secrets/credentials.yml
 
-  pre_tasks:
-     - name: Install EPEL repo
-       package: name= '{{ item }}' state=absent
-       when: ansible_distribution == "CentOS"
-       loop:
-         - epel-release
-         - wget
-         - git
-        
+  pre_tasks:   
      - name: Install pre-requis
        package: name= '{{ item }}' state=latest
        when: ansible_distribution == "CentOS"
@@ -22,16 +14,16 @@
          - epel-release
          - wget
          - git        
-     - name: Get running containers
-       docker_host_info:
-          containers: yes
-       register: docker_info
+     #- name: Get running containers
+     #  docker_host_info:
+     #     containers: yes
+     #  register: docker_info
  
-     - name: stop running containers
-       docker_container:
-         name: "{{ item }}"
-         state: stopped
-       loop: "{{ docker_info.containers | map(attribute='Id') | list }}"
+     #- name: stop running containers
+     #  docker_container:
+     #   name: "{{ item }}"
+     #    state: stopped
+     #  loop: "{{ docker_info.containers | map(attribute='Id') | list }}"
      
      - name: Template a file
        template:
