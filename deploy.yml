@@ -1,0 +1,65 @@
+---
+- name: apache installation
+  hosts: client1
+  become: yes
+  gather_facts: yes
+  vars_files:
+     - files/secrets/credentials.yml
+
+  pre_tasks:
+     - name: Install EPEL repo
+       package: name= '{{ item }}' state=absent
+       when: ansible_distribution == "CentOS"
+       loop:
+         - epel-release
+         - wget
+         - git
+        
+     - name: Install pre-requis
+       package: name= '{{ item }}' state=latest
+       when: ansible_distribution == "CentOS"
+       loop:
+         - epel-release
+         - wget
+         - git        
+     - name: Get running containers
+       docker_host_info:
+          containers: yes
+       register: docker_info
+ 
+     - name: stop running containers
+       docker_container:
+         name: "{{ item }}"
+         state: stopped
+       loop: "{{ docker_info.containers | map(attribute='Id') | list }}"
+     
+     - name: Template a file
+       template:
+         src: index.html.j2
+         dest: /home/vagrant/index.html
+
+     - name: Ajout pip script
+       get_url:
+         url: https://bootstrap.pypa.io/pip/2.7/get-pip.py
+         dest: /tmp/get-pip.py
+
+     - name: Install python-pip
+       ansible.builtin.command: python2.7 /tmp/get-pip.py
+
+     - name: Install docker python
+       pip: name=docker-py
+
+     - name: demarrer le service docker
+       service:
+         name: docker
+         state: started
+         enabled: yes
+   
+     - name: Pulling image from docker hub
+       docker_container:
+          name: webapp
+          image: httpd
+          ports:
+            - "80:80"
+          volumes:
+            - /home/vagrant/index.html:/usr/local/apache2/htdocs/index.html 
